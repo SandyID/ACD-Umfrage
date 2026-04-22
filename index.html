@@ -937,14 +937,19 @@ function showPinScreen() {
 // ════════════════════════════════════════════
 let pinInput = "";
 
-function pinKey(d) {
+async function pinKey(d) {
   if (pinInput.length >= 4) return;
   pinInput += d;
   updatePinDots();
   if (pinInput.length === 4) {
-    setTimeout(() => {
-      if (pinInput === ADMIN_PIN) { showResults(); }
-      else {
+    setTimeout(async () => {
+      const msgBuffer = new TextEncoder().encode(pinInput);
+      const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hash = hashArray.map(b => b.toString(16).padStart(2,"0")).join("");
+      if (hash === ADMIN_PIN_HASH) {
+        showResults();
+      } else {
         document.getElementById("pin-error").textContent = t().pin_err;
         document.getElementById("pin-error").style.animation = "none";
         document.getElementById("pin-error").offsetHeight;
