@@ -982,7 +982,7 @@ function showResults() {
   document.getElementById("resp-count").textContent = "...";
   show("results-view");
 
-  fetch(SHEET_URL + "?t=" + Date.now())
+ fetch(SHEET_URL + "?t=" + Date.now(), { mode: "cors" })
     .then(r => r.json())
     .then(all => {
       const n = all.length;
