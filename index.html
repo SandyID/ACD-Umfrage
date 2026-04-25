@@ -976,87 +976,73 @@ function updatePinDots() {
 //  RESULTS
 // ════════════════════════════════════════════
 function showResults() {
-  const all = JSON.parse(localStorage.getItem("acd_survey") || "[]");
-  const n = all.length;
   document.getElementById("results-title").textContent = "📋 Antworten";
-  document.getElementById("resp-count").textContent = n + (n===1?" Person":" Personen");
-  document.getElementById("clear-btn").textContent = "🗑 Alle Daten löschen";
   document.getElementById("results-back-btn").textContent = "← Zurück";
+  document.getElementById("results-body").innerHTML = `<div style="color:var(--muted);text-align:center;padding:30px 0;">⏳ Lade Antworten...</div>`;
+  document.getElementById("resp-count").textContent = "...";
+  show("results-view");
 
-  if (n === 0) {
-    document.getElementById("results-body").innerHTML = `<div style="color:var(--muted);text-align:center;padding:30px 0;">Noch keine Antworten vorhanden.</div>`;
-    show("results-view"); return;
-  }
+  fetch(SHEET_URL + "?t=" + Date.now())
+    .then(r => r.json())
+    .then(all => {
+      const n = all.length;
+      document.getElementById("resp-count").textContent = n + (n===1?" Person":" Personen");
 
-  const roleMap = { lead:"Teamleitung / Team leader / Chef d'équipe", member:"Aktives Mitglied / Active member / Membre actif", support:"Gelegentlich / Occasionally / Occasionnellement" };
-  const activeMap = { yes:"✅ Ja / Yes / Oui", no:"❌ Nein / No / Non", maybe:"🤔 Vielleicht / Maybe / Peut-être" };
+      if (n === 0) {
+        document.getElementById("results-body").innerHTML = `<div style="color:var(--muted);text-align:center;padding:30px 0;">Noch keine Antworten vorhanden.</div>`;
+        return;
+      }
 
-  let html = "";
+      const roleMap = { lead:"Teamleitung / Team leader / Chef d'équipe", member:"Aktives Mitglied / Active member / Membre actif", support:"Gelegentlich / Occasionally / Occasionnellement" };
+      const activeMap = { yes:"✅ Ja / Yes / Oui", no:"❌ Nein / No / Non", maybe:"🤔 Vielleicht / Maybe / Peut-être" };
+      let html = "";
 
-  // One card per person
-  all.forEach((r, idx) => {
-    const when = new Date(r.ts).toLocaleDateString("de-DE", {day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit"});
-    const langFlag = r.lang==="de" ? "🇩🇪" : r.lang==="fr" ? "🇫🇷" : "🇬🇧";
-
-    html += `
-    <div class="r-item" style="border-left:4px solid var(--green);margin-bottom:16px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-        <div style="font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--green);font-weight:700;">
-          👤 ${r.name || "–"}
-        </div>
-        <div style="font-size:11px;color:var(--muted);text-align:right;">
-          ${langFlag} ${when}
-        </div>
-      </div>
-
-      <div class="r-person-row">
-        <span class="r-person-label">Engagement</span>
-        <span class="r-person-value">${activeMap[r.active] || r.active || "–"}</span>
-      </div>`;
-
-    if (r.teams && r.teams.length > 0) {
-      html += `<div class="r-person-row" style="align-items:flex-start;">
-        <span class="r-person-label">Teams</span>
-        <div style="flex:1;">`;
-      r.teams.forEach(tm => {
-        const teamDE = TEAMS.de.find(t=>t.id===tm.id);
-        html += `<div style="margin-bottom:8px;background:var(--bg);border-radius:8px;padding:8px 10px;">
-          <div style="font-weight:700;font-size:0.88rem;">${teamDE?.emoji||"💡"} ${teamDE?.name||tm.name}</div>
-          <div style="font-size:0.8rem;color:var(--muted);margin-top:2px;">↳ ${roleMap[tm.role] || tm.role || "–"}</div>`;
-        if (tm.id === "own" && tm.ownName) {
-          html += `<div style="font-size:0.8rem;color:var(--green2);margin-top:3px;">📝 ${tm.ownName}: ${tm.ownDesc}</div>`;
+      all.forEach((r, idx) => {
+        const when = new Date(r.ts).toLocaleDateString("de-DE", {day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit"});
+        const langFlag = r.lang==="de" ? "🇩🇪" : r.lang==="fr" ? "🇫🇷" : "🇬🇧";
+        html += `
+        <div class="r-item" style="border-left:4px solid var(--green);margin-bottom:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div style="font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--green);font-weight:700;">👤 ${r.name || "–"}</div>
+            <div style="font-size:11px;color:var(--muted);">${langFlag} ${when}</div>
+          </div>
+          <div class="r-person-row">
+            <span class="r-person-label">Engagement</span>
+            <span class="r-person-value">${activeMap[r.active] || r.active || "–"}</span>
+          </div>`;
+        if (r.teams && r.teams.length > 0) {
+          html += `<div class="r-person-row" style="align-items:flex-start;"><span class="r-person-label">Teams</span><div style="flex:1;">`;
+          r.teams.forEach(tm => {
+            const teamDE = TEAMS.de.find(t=>t.id===tm.id);
+            html += `<div style="margin-bottom:8px;background:var(--bg);border-radius:8px;padding:8px 10px;">
+              <div style="font-weight:700;font-size:0.88rem;">${teamDE?.emoji||"💡"} ${teamDE?.name||tm.name}</div>
+              <div style="font-size:0.8rem;color:var(--muted);margin-top:2px;">↳ ${roleMap[tm.role] || tm.role || "–"}</div>`;
+            if (tm.id === "own" && tm.ownName) html += `<div style="font-size:0.8rem;color:var(--green2);margin-top:3px;">📝 ${tm.ownName}: ${tm.ownDesc}</div>`;
+            if (tm.extra) html += `<div style="font-size:0.8rem;color:var(--text);margin-top:3px;font-style:italic;">"${tm.extra}"</div>`;
+            html += `</div>`;
+          });
+          html += `</div></div>`;
         }
-        if (tm.extra) {
-          html += `<div style="font-size:0.8rem;color:var(--text);margin-top:3px;font-style:italic;">"${tm.extra}"</div>`;
-        }
+        if (r.commitment) html += `<div class="r-person-row"><span class="r-person-label">Zeit / Monat</span><span class="r-person-value">${r.commitment}</span></div>`;
+        if (r.ideas) html += `<div class="r-person-row" style="align-items:flex-start;"><span class="r-person-label">Ideen</span><span class="r-person-value" style="font-style:italic;">"${r.ideas}"</span></div>`;
         html += `</div>`;
       });
-      html += `</div></div>`;
-    }
 
-    if (r.commitment) {
-      html += `<div class="r-person-row">
-        <span class="r-person-label">Zeit / Monat</span>
-        <span class="r-person-value">${r.commitment}</span>
-      </div>`;
-    }
+      document.getElementById("results-body").innerHTML = html;
+    })
+    .catch(() => {
+      document.getElementById("results-body").innerHTML = `<div style="color:var(--muted);text-align:center;padding:30px 0;">❌ Fehler beim Laden. Bitte erneut versuchen.</div>`;
+    });
+}
 
-    if (r.ideas) {
-      html += `<div class="r-person-row" style="align-items:flex-start;">
-        <span class="r-person-label">Ideen</span>
-        <span class="r-person-value" style="font-style:italic;">"${r.ideas}"</span>
-      </div>`;
-    }
-
-    html += `
-      <div style="text-align:right;margin-top:10px;">
-        <button onclick="deleteSingle(${idx})" style="background:none;border:none;color:var(--muted);font-size:0.78rem;cursor:pointer;font-family:'Nunito',sans-serif;">🗑 Eintrag löschen</button>
-      </div>
-    </div>`;
-  });
-
-  document.getElementById("results-body").innerHTML = html;
-  show("results-view");
+function clearData() {
+  const msg = lang==="fr" ? "Vraiment supprimer toutes les réponses ?"
+            : lang==="en" ? "Really delete all responses?"
+            : "Wirklich alle Antworten löschen?";
+  if (confirm(msg)) {
+    localStorage.removeItem("acd_survey");
+    showResults();
+  }
 }
 
 function deleteSingle(idx) {
