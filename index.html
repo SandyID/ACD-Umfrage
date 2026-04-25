@@ -883,9 +883,10 @@ function goBack() {
 // ════════════════════════════════════════════
 //  STORAGE
 // ════════════════════════════════════════════
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbyeLGiDddaruz-2A3F9kXAcoSpbgLwjk7Q1BASRjF2hrbnsb_pI8YmGpuXxBKeM9knK/exec";
+
 function saveResponse() {
-  const all = JSON.parse(localStorage.getItem("acd_survey") || "[]");
-  all.push({
+  const entry = {
     ts: new Date().toISOString(),
     lang,
     name: answers["name"] || "",
@@ -900,10 +901,17 @@ function saveResponse() {
     })),
     commitment: answers["commitment"] || "",
     ideas: answers["ideas"] || ""
-  });
+  };
+  const all = JSON.parse(localStorage.getItem("acd_survey") || "[]");
+  all.push(entry);
   localStorage.setItem("acd_survey", JSON.stringify(all));
+  fetch(SHEET_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(entry)
+  }).catch(err => console.log("Sheet sync fehler:", err));
 }
-
 // ════════════════════════════════════════════
 //  VIEWS
 // ════════════════════════════════════════════
